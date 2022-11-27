@@ -20,8 +20,12 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  return {
+    width,
+    height,
+    getArea() { return this.width * this.height; },
+  };
 }
 
 
@@ -35,8 +39,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +55,10 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const obj = JSON.parse(json);
+  Object.setPrototypeOf(obj, proto);
+  return obj;
 }
 
 
@@ -111,35 +117,109 @@ function fromJSON(/* proto, json */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  order: 0,
+
+  element(value) {
+    this.checkOrder(1);
+    if (this.elem) this.occurError();
+    const selector = { ...this };
+    selector.elem = `${value}`;
+    selector.order = 1;
+    return selector;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.checkOrder(2);
+    if (this.ID) this.occurError();
+    const selector = { ...this };
+    selector.ID = `#${value}`;
+    selector.order = 2;
+    return selector;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    this.checkOrder(3);
+    const selector = { ...this };
+    if (selector.classes) {
+      selector.classes += `.${value}`;
+    } else {
+      selector.classes = `.${value}`;
+      selector.order = 3;
+    }
+    return selector;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    this.checkOrder(4);
+    const selector = { ...this };
+    if (selector.attribute) {
+      selector.attribute += `[${value}]`;
+    } else {
+      selector.attribute = `[${value}]`;
+      selector.order = 4;
+    }
+    return selector;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    this.checkOrder(5);
+    const selector = { ...this };
+    if (selector.pseudoClasses) {
+      selector.pseudoClasses += `:${value}`;
+    } else {
+      selector.pseudoClasses = `:${value}`;
+      selector.order = 5;
+    }
+    return selector;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.checkOrder(6);
+    if (this.pseudoElem) this.occurError();
+    const selector = { ...this };
+    selector.pseudoElem = `::${value}`;
+    selector.order = 6;
+    return selector;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  stringify() {
+    const str = `${this.elem ? this.elem : ''}
+    ${this.ID ? this.ID : ''}
+    ${this.classes ? this.classes : ''}
+    ${this.attribute ? this.attribute : ''}
+    ${this.pseudoClasses ? this.pseudoClasses : ''}
+    ${this.pseudoElem ? this.pseudoElem : ''}`.replaceAll('\n', '').replaceAll(' ', '');
+
+    return `${this.prev ? this.prev : ''}${str}`;
+  },
+
+  combine(selector1, combinator, selector2) {
+    const sel2 = selector2;
+    if (!sel2.prev) {
+      sel2.prev = `${selector1.stringify()} ${combinator} `;
+    } else if (!sel2.isCombined) {
+      sel2.prev += `${selector1.stringify()} ${combinator} `;
+    } else {
+      sel2.prev = `${selector1.stringify()} ${combinator} ${sel2.prev}`;
+    }
+    sel2.isCombined = true;
+
+    return sel2;
+  },
+
+  occurError() {
+    throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+  },
+
+  checkOrder(number) {
+    if (number === this.order) {
+      return;
+    }
+    if (number < this.order) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
   },
 };
-
 
 module.exports = {
   Rectangle,
